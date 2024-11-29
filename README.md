@@ -1,6 +1,6 @@
 # nRF52840 LED Button Polling
 
-This project demonstrates how to control an LED using a button on the nRF52840 Development Kit (DK). The example is implemented using the Zephyr RTOS, leveraging the DeviceTree for hardware abstraction. The button's state is polled, and the LED is updated accordingly.
+This project demonstrates how to control multiple LEDs using buttons on the nRF52840 Development Kit (DK). The example is implemented using the Zephyr RTOS, leveraging the DeviceTree for hardware abstraction. The buttons' states are polled, and the LEDs are updated accordingly.
 
 ---
 
@@ -16,9 +16,12 @@ This project demonstrates how to control an LED using a button on the nRF52840 D
 
 ## **Features**
 
-- Reads input from a button (`Button 1`) on the nRF52840 DK.
-- Controls an LED (`LED 1`) based on the button state.
+- Reads input from three buttons on the nRF52840 DK:
+  - **Button 1**: Directly controls **LED 1**, turning it on while pressed and off when released.
+  - **Button 2**: Toggles blinking of **LED 2**.
+  - **Button 3**: Cycles **LED 3** through three patterns: off, on, and blinking.
 - Implements a polling mechanism with a configurable sleep interval for power efficiency.
+- Modular code structure with separate files for buttons and LEDs.
 
 ---
 
@@ -26,10 +29,11 @@ This project demonstrates how to control an LED using a button on the nRF52840 D
 
 ### **Button and LED Mapping**
 The code uses the following mappings:
-- **Button 1** (`sw0`): Configured as an input.
-- **LED 1** (`led0`): Configured as an output.
+- **Button 1** (`sw0`): Controls **LED 1** (`led0`).
+- **Button 2** (`sw1`): Toggles blinking for **LED 2** (`led1`).
+- **Button 3** (`sw2`): Cycles patterns for **LED 3** (`led2`).
 
-### **Button Location**
+### **Buttons Locations**
 ![Button Location](image-51.png)
 
 ### **Button Pin Mapping**
@@ -56,4 +60,22 @@ The code uses the following mappings:
      ```
 
 4. **Test the Application**:
-   - Press `Button 1` on the DK. The `LED 1` should toggle according to the button's state.
+   - **Button 1**: Press and hold to turn **LED 1** on. Release to turn it off.
+   - **Button 2**: Press to toggle blinking for **LED 2**.
+   - **Button 3**: Press to cycle **LED 3** through off, on, and blinking modes.
+
+---
+
+## **Code Structure**
+
+### **Main Application (`main.c`)**
+Handles the polling loop, button state reading, and LED updates based on the button logic.
+
+### **Buttons Module (`buttons.c` and `buttons.h`)**
+- Initializes button GPIOs.
+- Reads the state of individual buttons.
+
+### **LEDs Module (`leds.c` and `leds.h`)**
+- Initializes LED GPIOs.
+- Provides functions to set LED state or toggle LEDs.
+

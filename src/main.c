@@ -1,55 +1,84 @@
 /*
- * Copyright (c) 2016 Intel Corporation
+ * @file main.c
+ * @brief Application that controls LEDs based on button inputs.
+ *
+ * @author Ameed Othman	
+ * @date 2024-11-29
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-
 #include <zephyr/kernel.h>
-#include <zephyr/device.h>
-#include <zephyr/devicetree.h>
-#include <zephyr/drivers/gpio.h>
+#include "buttons.h"
+#include "leds.h"
 
-/* STEP 7 - Change the sleep time from 1000 ms to 100 ms */
 #define SLEEP_TIME_MS 100
-
-/* STEP 3.1 - Get the node identifier for button 1 through its alias sw0 */
-#define SW0_NODE DT_ALIAS(sw0)
-/* STEP 3.2 - Get the device pointer, pin number, and pin's configuration flags through gpio_dt_spec */
-static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(SW0_NODE, gpios);
-/* LED0_NODE is the devicetree node identifier for the "led0" alias. */
-#define LED0_NODE DT_ALIAS(led0)
-static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
 int main(void)
 {
-	int ret;
+    int ret;
 
-	if (!device_is_ready(led.port)) {
-		return -1;
-	}
-	/* STEP 4 - Verify that the device is ready for use */
-	if (!device_is_ready(button.port)) {
-		return -1;
-	}
+    // Initialize buttons
+    ret = buttons_init();
+    if (ret < 0) {
+        return -1;
+    }
 
-	ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
-	if (ret < 0) {
-		return -1;
-	}
+    // Initialize LEDs
+    ret = leds_init();
+    if (ret < 0) {
+        return -1;
+    }
 
-	/* STEP 5 - Configure the pin connected to the button to be an input pin and set its
-	 * hardware specifications */
-	ret = gpio_pin_configure_dt(&button, GPIO_INPUT);
-	if (ret < 0) {
-		return -1;
-	}
+    // Variables to keep track of LED states
+    bool led1_blink = false;
+    int led2_pattern = 0;
 
-	while (1) {
-		/* STEP 6.1 - Read the status of the button and store it */
-		bool val = gpio_pin_get_dt(&button);
-		/* STEP 6.2 - Update the LED to the status of the button */
-		gpio_pin_set_dt(&led, val);
-		k_msleep(SLEEP_TIME_MS); // Put the main thread to sleep for 100ms for power
-					 // optimization
-	}
+    // Variables to keep track of previous button states
+    bool prev_button1_state = false;
+    bool prev_button2_state = false;
+
+    while (1) {
+        // Read button states
+        bool button0_state = button_get_state(0);
+        bool button1_state = button_get_state(1);
+        bool button2_state = button_get_state(2);
+
+        // Set LED 0 state based on Button 0 state
+        led_set_state(0, button0_state);
+
+        // Detect button 1 press (toggle blinking of LED 1)
+        if (button1_state && !prev_button1_state) {
+            led1_blink = !led1_blink;
+        }
+        prev_button1_state = button1_state;
+
+        // Update LED 1 blinking
+        if (led1_blink) {
+            led_toggle(1);
+        }
+
+        // Detect button 2 press (cycle LED 2 patterns)
+        if (button2_state && !prev_button2_state) {
+            led2_pattern = (led2_pattern + 1) % 3;
+        }
+        prev_button2_state = button2_state;
+
+        // Update LED 2 based on the current pattern
+        switch (led2_pattern) {
+            case 0:
+                led_set_state(2, false); // Off
+                break;
+            case 1:
+                led_set_state(2, true);  // On
+                break;
+            case 2:
+                led_toggle(2);           // Blinking
+                break;
+        }
+
+        // Sleep to reduce CPU usage
+        k_msleep(SLEEP_TIME_MS);
+    }
+
+    return 0;
 }
